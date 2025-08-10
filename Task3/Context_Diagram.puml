@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Контекстная диаграмма (MVP открытия депозитов)
+
+Person(customer, "Клиент", "Новый или действующий клиент банка")
+Person(cc_operator, "Оператор кол-центра", "Обрабатывает звонки и заявки")
+Person(bo_manager, "Менеджер бэк-офиса депозитов", "Обрабатывает заявки и подтверждает условия")
+
+System_Ext(telco, "Телеком-оператор", "", "Доставка СМС клиентам")
+
+System_Boundary(bank_system, "Система банка «Стандарт»") {
+    System(site, "Сайт", "PHP + React", "Витрина депозитов и форма заявки (новые клиенты)")
+    System(ib, "Интернет-банк", "ASP.NET MVC 4.5 + MS SQL", "Подача заявок на депозиты для действующих клиентов")
+    System(abs, "АБС", "Delphi + Oracle", "Учёт счетов, расчёт ставок, открытие депозитов")
+    System(cc, "Система кол-центра", "React + Spring Boot + PostgreSQL", "Обработка звонков и заявок")
+    System(smsgw, "СМС-шлюз", "Внутренний сервис", "Отправка СМС клиентам")
+}
+
+Rel(customer, site, "Подача заявки", "HTTPS/TLS")
+Rel(customer, ib, "Подача заявки, просмотр ставок", "HTTPS/TLS + СМС-подтверждение")
+Rel(site, cc, "Передача заявки", "HTTPS/TLS")
+Rel(ib, abs, "Передача заявки", "API-шлюз/промежуточный сервис")
+Rel(cc, abs, "Передача заявки", "API-шлюз/промежуточный сервис")
+Rel(cc_operator, cc, "Работа с заявками и звонками")
+Rel(bo_manager, abs, "Обработка заявки, подтверждение ставки")
+Rel(abs, smsgw, "Отправка СМС")
+Rel(smsgw, telco, "Передача СМС клиенту")
+Rel(telco, customer, "Доставка СМС")
+
+@enduml
