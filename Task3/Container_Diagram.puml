@@ -1,0 +1,59 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Контейнерная диаграмма (MVP открытия депозитов)
+
+Person(customer, "Клиент", "Новый или действующий клиент банка")
+Person(cc_operator, "Оператор кол-центра", "Обрабатывает звонки и заявки в системе кол-центра")
+Person(bo_manager, "Менеджер бэк-офиса депозитов", "Обрабатывает заявки и подтверждает условия в АБС")
+
+System_Boundary(bank_system, "Система банка «Стандарт»") {
+
+    ' --- Сайт ---
+    Container(site, "Сайт", "PHP + React", "Витрина депозитов и форма заявки (новые клиенты)")
+
+    ' --- Интернет-банк ---
+    Container_Boundary(ib_boundary, "Интернет-банк") {
+        Container(ib_web, "Веб-интерфейс", "ASP.NET MVC 4.5", "UI интернет-банка, отображает продукты и принимает заявки")
+        Container(ib_deposits, "Модуль 'Депозиты'", "C#", "Обработка подачи заявок и интеграция с АБС через промежуточный сервис")
+        ContainerDb(ib_db, "БД интернет-банка", "MS SQL", "Хранение пользовательских и транзакционных данных")
+    }
+
+    ' --- АБС ---
+    Container_Boundary(abs_boundary, "АБС") {
+        Container(abs_ui, "Клиентское приложение", "Delphi", "Рабочее место бэк-офиса")
+        Container(abs_deposits, "Модуль обработки депозитов", "PL/SQL", "Расчёт ставок, обработка заявок, открытие депозитов")
+        ContainerDb(abs_db, "БД АБС", "Oracle", "Хранение данных по счетам, депозитам, кредитам")
+    }
+
+    ' --- Система кол-центра ---
+    Container(cc, "Система кол-центра", "React + Spring Boot + PostgreSQL", "Приём заявок с сайта, доступ к ставкам в АБС")
+
+    ' --- СМС-шлюз ---
+    Container(smsgw, "СМС-шлюз", "Внутренний сервис", "Отправка СМС клиентам")
+}
+
+System_Ext(telco, "Телеком-оператор", "", "Доставка СМС клиентам")
+
+' --- Взаимодействия клиентов ---
+Rel(customer, site, "Подача заявки", "HTTPS/TLS")
+Rel(customer, ib_web, "Работа в интернет-банке", "HTTPS/TLS + СМС-код")
+
+' --- Взаимодействия систем ---
+Rel(site, cc, "Передача данных заявки", "HTTPS/TLS")
+Rel(ib_web, ib_deposits, "Передача данных заявки")
+Rel(ib_deposits, ib_db, "Чтение/запись")
+Rel(ib_deposits, abs_deposits, "Передача заявки на открытие депозита", "API-шлюз/промежуточный сервис")
+
+Rel(cc, abs_deposits, "Запрос/передача ставок и заявок", "API/SQL")
+Rel(abs_ui, abs_deposits, "Работа бэк-офиса")
+Rel(abs_deposits, abs_db, "Чтение/запись")
+Rel(abs_deposits, smsgw, "Отправка СМС")
+Rel(smsgw, telco, "Передача СМС клиенту")
+Rel(telco, customer, "Доставка СМС")
+
+' --- Связи акторов с контейнерами ---
+Rel(cc_operator, cc, "Работа с заявками и звонками")
+Rel(bo_manager, abs_ui, "Обработка заявок и подтверждение ставок")
+
+@enduml
